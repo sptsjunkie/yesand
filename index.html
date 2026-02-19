@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Improv">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
+  <title>Improv Prompter</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+    :root{--bg:#f5f4f0;--bg2:#eceae4;--surface:#ffffff;--border:#d8d5cc;--text:#1a1917;--text2:#6b6860;--accent:#c4502a;--cat-bg:#ffffff;--cat-active:#1a1917;--cat-active-text:#ffffff;--hint-bg:#f9f8f5;--shadow:rgba(0,0,0,0.08);--green:#2d7a4f;--blue:#2a5fa8}
+    [data-theme="dark"]{--bg:#0f0e0c;--bg2:#1a1917;--surface:#242220;--border:#2e2c29;--text:#f0ede6;--text2:#7a7770;--accent:#e06640;--cat-bg:#1a1917;--cat-active:#f0ede6;--cat-active-text:#0f0e0c;--hint-bg:#1a1917;--shadow:rgba(0,0,0,0.3);--green:#4caf7d;--blue:#6b9fe4}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+    body{display:flex;flex-direction:column;min-height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 12px;flex-shrink:0}
+    .logo{font-family:'DM Serif Display',Georgia,serif;font-size:22px;letter-spacing:-.3px;color:var(--text)}
+    .logo span{color:var(--accent);font-style:italic}
+    .theme-btn{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;box-shadow:0 1px 3px var(--shadow)}
+    .theme-btn:active{transform:scale(.92)}
+    .categories-wrap{padding:0 16px 12px;flex-shrink:0}
+    .categories{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none;-ms-overflow-style:none}
+    .categories::-webkit-scrollbar{display:none}
+    .cat-btn{flex-shrink:0;padding:8px 16px;border-radius:100px;border:1px solid var(--border);background:var(--cat-bg);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap}
+    .cat-btn:active{transform:scale(.94)}
+    .cat-btn.active{background:var(--cat-active);color:var(--cat-active-text);border-color:var(--cat-active)}
+    .main{flex:1;display:flex;flex-direction:column;padding:0 24px;gap:16px;min-height:0}
+    .suggestion-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 24px;text-align:center;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px var(--shadow)}
+    .suggestion-category-label{font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:4px}
+    .suggestion-text{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(28px,8vw,42px);line-height:1.15;color:var(--text)}
+    .suggestion-text.dialogue{font-size:clamp(20px,5.5vw,28px);font-style:italic}
+    .suggestion-text.empty{font-size:18px;font-family:'DM Sans',sans-serif;font-weight:300;color:var(--text2);font-style:italic}
+    .suggestion-text.animate{animation:pop .25s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes pop{0%{transform:scale(.88);opacity:.4}100%{transform:scale(1);opacity:1}}
+    .actions{display:flex;gap:10px;flex-shrink:0}
+    .generate-btn{flex:1;padding:18px;border-radius:14px;background:var(--accent);color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:17px;font-weight:500;cursor:pointer;transition:all .18s;letter-spacing:-.2px}
+    .generate-btn:active{transform:scale(.96);filter:brightness(.9)}
+    .examples-btn{padding:18px 20px;border-radius:14px;background:var(--surface);color:var(--text);border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .examples-btn:active{transform:scale(.96)}
+    .examples-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .examples-panel{background:var(--hint-bg);border:1px solid var(--border);border-radius:20px;overflow:hidden;flex-shrink:0;display:none}
+    .examples-panel.visible{display:block}
+    .examples-header{padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+    .examples-title{font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)}
+    .examples-close{width:28px;height:28px;border-radius:50%;background:var(--border);border:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .examples-close:active{transform:scale(.9)}
+    .examples-scroll{max-height:55vh;overflow-y:auto;padding:0;-webkit-overflow-scrolling:touch}
+    .def-block{padding:14px 20px;border-bottom:1px solid var(--border);animation:slideIn .2s ease forwards}
+    .def-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:5px}
+    .def-pos{font-size:11px;font-style:italic;color:var(--text2);margin-bottom:3px}
+    .def-text{font-size:13.5px;line-height:1.5;color:var(--text)}
+    .wiki-link{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--blue);text-decoration:none;font-weight:500}
+    .wiki-link:hover{text-decoration:underline}
+    .objects-block{padding:14px 20px;border-bottom:1px solid var(--border);opacity:0;animation:slideIn .2s ease .05s forwards}
+    .objects-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+    .objects-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .obj-chip{padding:4px 10px;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--text2)}
+    .hint-item{padding:14px 20px;border-bottom:1px solid var(--border);opacity:0;animation:slideIn .2s ease forwards}
+    .hint-item:last-child{border-bottom:none}
+    @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .hint-num{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+    .hint-scene{font-size:14px;line-height:1.5;color:var(--text);margin-bottom:6px}
+    .hint-line{font-size:13px;font-style:italic;color:var(--text2);line-height:1.4}
+    .hint-line::before{content:'"'}
+    .hint-line::after{content:'"'}
+    footer{padding:12px 24px 20px;text-align:center;flex-shrink:0}
+    .footer-text{font-size:11px;color:var(--text2);letter-spacing:.3px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">yes<span>&</span></div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode">☀️</button>
+  </header>
+  <div class="categories-wrap">
+    <div class="categories" id="categories"></div>
+  </div>
+  <div class="main">
+    <div class="suggestion-card" id="card">
+      <div class="suggestion-category-label" id="catLabel">Choose a category</div>
+      <div class="suggestion-text empty" id="suggestionText">tap generate to begin</div>
+    </div>
+    <div class="actions">
+      <button class="generate-btn" id="generateBtn">Generate</button>
+      <button class="examples-btn" id="examplesBtn" disabled>💡 Examples</button>
+    </div>
+    <div class="examples-panel" id="examplesPanel">
+      <div class="examples-header">
+        <div class="examples-title">Scene Examples</div>
+        <button class="examples-close" id="examplesClose">✕</button>
+      </div>
+      <div class="examples-scroll" id="examplesList"></div>
+    </div>
+  </div>
+  <footer>
+    <p class="footer-text">yes, and → improv practice tool</p>
+  </footer>
+
+<script>
+// ── CATEGORIES ──────────────────────────────────────────────────────────────
+const categories = {
+  "🎲 All Random": null,
+  "💬 Words": [
+    "witch","ghost","sandwich","ladder","mirror","volcano","puppet","compass","lantern","fortress",
+    "telescope","suitcase","fountain","pilgrim","surgeon","detective","oracle","nomad","stranger","prophet",
+    "carousel","lighthouse","cathedral","avalanche","chameleon","labyrinth","phantom","relic","talisman","scarecrow",
+    "accomplished","restless","hollow","luminous","reckless","peculiar","ancient","tender","furious","delicate",
+    "stubborn","elusive","radiant","somber","vivid","frantic","weary","defiant","whimsical","brittle",
+    "unravel","collapse","whisper","vanish","shatter","stumble","surrender","ignite","drift","reclaim",
+    "abandon","confess","linger","provoke","discover","haunt","rebuild","betray","celebrate","wrestle",
+    "desperately","quietly","recklessly","suddenly","reluctantly","fiercely","endlessly","gracefully","wildly","barely"
+  ],
+  "📍 Places": [
+    "Starbucks","the beach","an airport","a hospital waiting room","the DMV","a rooftop","a cemetery",
+    "a submarine","a lighthouse","a laundromat","a pawn shop","a ski lodge","a hot air balloon",
+    "a monastery","a taxicab","a treehouse","a bowling alley","a cruise ship","a parking garage",
+    "a farmer's market","a carnival","a university library","a storage unit","a drive-through",
+    "a natural history museum","a boxing gym","an Antarctic research station","a fast food kitchen",
+    "an escape room","a jazz club","a retirement home","a comic book store","a dentist's office",
+    "Times Square","a construction site","a ghost town","a vineyard","a space station","a swamp",
+    "a food truck","a radio station","a courtroom","a summer camp","a theme park","a penthouse",
+    "a thrift store","a fire station","a sailboat","a mountain summit"
+  ],
+  "👥 Relationships": [
+    "Mother & Daughter","Father & Son","Teacher & Student","Priest & Parishioner","Boss & Employee",
+    "Doctor & Patient","Lawyer & Client","Rival siblings","Long-lost twins","Ex best friends",
+    "New neighbors","Old college roommates","Landlord & Tenant","Coach & Athlete","Chef & Food critic",
+    "Detective & Suspect","Therapist & Client","Mentor & Protégé","Firefighter & Arsonist","Ghost & Medium",
+    "Time traveler & Historian","Superhero & Villain","Pen pals meeting for the first time",
+    "Strangers stuck in an elevator","Co-conspirators","Two people on a blind date","First day coworkers",
+    "Celebrity & Superfan","Astronaut & Mission control","Judge & Defense attorney",
+    "Personal trainer & Client","Estranged cousins","Wedding planner & Runaway bride",
+    "Pilot & Nervous passenger","Scientist & Test subject","King & Court jester",
+    "Undercover cop & Criminal","Rival chefs","Guardian & Ward","Ghost & Descendant"
+  ],
+  "⏳ Time Periods": [
+    "Medieval times","The 1920s","The Wild West","Ancient Rome","The Grunge era","1960s Woodstock",
+    "The French Revolution","Victorian England","The Space Race","The Roaring Twenties",
+    "World War II","The Renaissance","Ancient Egypt","The Cold War","1980s Wall Street",
+    "The Great Depression","Ancient Greece","Prohibition era","The Disco era","The Bronze Age",
+    "The Information Age","The Jurassic period","1990s dot-com boom","Post-apocalypse","The distant future",
+    "The Salem Witch Trials","The Gold Rush","Ancient China","The Viking Age","The British Invasion",
+    "1970s New York","The Gilded Age","Pre-internet 1994","The Black Plague","The Moon Landing era",
+    "Ancient Mesopotamia","The Manhattan Project","The Hippie era","Early Hollywood","The Ice Age"
+  ],
+  "🧳 Objects": [
+    "brick","pineapple","baton","backpack","compass","accordion","crowbar","magnifying glass",
+    "trophy","briefcase","candle","typewriter","umbrella","trampoline","staple gun",
+    "vinyl record","pocket watch","binoculars","spatula","microscope","parachute",
+    "treasure map","bowling ball","snow globe","walkie-talkie","megaphone","lantern",
+    "mirror","slingshot","duct tape","cowbell","corkscrew","metronome","handcuffs",
+    "telescope","lucky charm","cassette tape","expired coupon",
+    "rubber chicken","first-aid kit","golden key","empty birdcage","wedding ring",
+    "signed photo","broken clock","journal","bottle of hot sauce","old letter"
+  ],
+  "🎬 Film Genres": [
+    "Film Noir","Horror","Romantic Comedy","Thriller","Murder Mystery","Action",
+    "Science Fiction","Western","Documentary","Period Drama","Mockumentary",
+    "Heist film","Coming-of-age","Buddy cop","Disaster movie","Psychological thriller",
+    "Supernatural horror","Spaghetti Western","Silent film","Epic fantasy",
+    "Body-swap comedy","Road trip movie","Found footage","Sports drama","Revenge thriller",
+    "French New Wave","Kung Fu film","Political drama","Dark comedy","Animated musical",
+    "Spy thriller","Courtroom drama","Zombie apocalypse","High school drama","Noir comedy"
+  ],
+  "💬 Dialogue": [
+    "I love penguins","Thank you","It's sure cold today","We need to talk","I didn't do it",
+    "That's not what I meant","You're going to love this","I've been thinking","Don't look now",
+    "Can you keep a secret?","This is harder than I thought","I owe you one","What are you doing here?",
+    "I just need a minute","That was different","Nobody has to know","I should have called",
+    "Wait, that's mine","Did you hear that?","I'm not sure I believe you","Let me explain",
+    "It was an accident","I've made up my mind","You look familiar","Something's wrong",
+    "We can figure this out","I've never done this before","That changes everything",
+    "I was just leaving","Don't take this personally","I saw what you did",
+    "You're the only one who understands","I can explain","Trust me on this one",
+    "I didn't think you'd actually come","It's not what you think","I was wrong about you",
+    "This is my last chance","How long has this been going on?","I don't know how to say this"
+  ],
+  "😤 Emotions": [
+    "Grief","Euphoria","Jealousy","Nostalgia","Guilt","Paranoia","Longing","Embarrassment",
+    "Relief","Betrayal","Regret","Desperation","Wonder","Indignation","Melancholy",
+    "Pride","Shame","Ecstasy","Dread","Tenderness","Boredom","Obsession","Resentment",
+    "Hope","Rage","Loneliness","Awe","Anxiety","Forgiveness","Envy","Contentment"
+  ],
+  "💼 Occupations": [
+    "Taxidermist","Actuary","Bomb disposal expert","Competitive eater","Obituary writer",
+    "Professional mourner","Odor tester","Ethical hacker","Ice road trucker","Chocolatier",
+    "Body double","Rodeo clown","Food critic","Sonar operator","Plague doctor","Bounty hunter",
+    "Cryptographer","Pyrotechnician","Vatican archivist","Theme park character","Hypnotist",
+    "Mattress tester","Human statue performer","Submarine cook","Professional cuddler",
+    "Roller derby queen","Voiceover artist","Night shift security guard","Treasure hunter","Sommelier"
+  ],
+  "🌀 Scenarios": [
+    "Someone just received incredible news","Someone is hiding something in plain sight",
+    "Two people are pretending everything is fine","Someone is doing something for the last time",
+    "Someone just made an irreversible decision","Two people haven't seen each other in years",
+    "Someone is trying not to cry","One person knows something the other doesn't",
+    "Someone is doing something they were told never to do","Two people are waiting for the same thing",
+    "Someone is pretending to be someone they're not","A secret is about to come out",
+    "Someone needs to ask for help but can't","Two people are competing without saying so",
+    "Someone has just arrived somewhere they don't belong","A conversation is being overheard",
+    "Two people disagree but both think they're being kind","Someone is stalling for time",
+    "This is the first time one of them has done this","Someone is saying goodbye"
+  ]
+};
+
+// ── OBJECT ASSOCIATIONS ──────────────────────────────────────────────────────
+const objMap = {
+  // PLACES
+  "Starbucks":["coffee cup","espresso machine","tip jar","green apron","loyalty card","pastry case","milk steamer","straw","barista name tag","blender"],
+  "the beach":["sunscreen bottle","beach towel","sunglasses","cooler","surfboard","sand bucket","flip flops","seashell","life preserver","beach umbrella"],
+  "an airport":["boarding pass","luggage cart","security tray","passport","overhead bin","gate sign","duty-free bag","neck pillow","departure board","meal voucher"],
+  "a hospital waiting room":["clipboard","hand sanitizer","call button","IV bag","hospital bracelet","wheelchair","vending machine","visitor badge","paper cup","magazine"],
+  "the DMV":["numbered ticket","clipboard","pen on a chain","plastic chair","ID form","velvet rope","government poster","driver's manual","waiting room TV","number display"],
+  "a rooftop":["lawn chair","string lights","telescope","beer bottle","chimney","satellite dish","blanket","pigeon","water tower","city skyline view"],
+  "a cemetery":["headstone","flowers","shovel","lantern","black umbrella","plot map","grave marker","watering can","iron gate","epitaph plaque"],
+  "a submarine":["periscope","sonar panel","torpedo hatch","bunk bed","pressure gauge","oxygen tank","mess tray","map table","diving suit","radio transmitter"],
+  "a lighthouse":["lens mechanism","foghorn","logbook","lantern oil","rope","signal flag","weather vane","spiral staircase","binoculars","life ring"],
+  "a laundromat":["detergent bottle","dryer sheet","quarter","lost sock","laundry bag","folding table","lint trap","change machine","bulletin board","rolling cart"],
+  "a pawn shop":["glass case","price tag","guitar","wedding ring","pawn ticket","security camera","magnifying loupe","cash register","old TV","hunting knife"],
+  "a ski lodge":["ski boots","fireplace poker","hot cocoa mug","ski pass","goggles","trail map","locker key","drying rack","après-ski menu","trophy elk mount"],
+  "a hot air balloon":["propane burner","wicker basket","tether rope","altimeter","carabiner","map","landing anchor","fire extinguisher","champagne bottle","wind sock"],
+  "a monastery":["prayer beads","bell","illuminated manuscript","candle","incense burner","robe","vow scroll","wooden bowl","sandals","stone archway"],
+  "a taxicab":["meter","pine air freshener","partition","tip tray","city map","dispatcher radio","receipt printer","phone charger","fare list","lost and found bin"],
+  "a treehouse":["rope ladder","binoculars","walkie-talkie","secret code book","hammock","snack stash","pulley system","lookout window","branch hook","hand-drawn map"],
+  "a bowling alley":["bowling ball","rental shoes","score sheet","lane wax","finger guard","beer pitcher","scoreboard","pin-setting machine","ball return","league trophy"],
+  "a cruise ship":["life jacket","boarding card","deck chair","captain's log","anchor","shuffleboard cue","formal dinner menu","port schedule","binoculars","passenger manifest"],
+  "a parking garage":["ticket stub","oil stain","traffic cone","gate arm","security camera","parking sign","emergency phone","concrete pillar","shopping cart","level marker"],
+  "a farmer's market":["wicker basket","price chalkboard","produce scale","sample cup","canvas tote bag","hand-painted sign","cash box","ice pack","honey jar","flower bouquet"],
+  "a carnival":["funnel cake","ticket roll","ring toss ring","stuffed animal prize","neon sign","cotton candy","spin-the-wheel","barker's microphone","wristband","mirror maze"],
+  "a university library":["library card","stack cart","call number slip","study carrel","pencil cup","periodical","microfilm reader","overdue notice","inter-library form","reference index"],
+  "a storage unit":["padlock","cardboard box","packing tape","bubble wrap","inventory list","furniture dolly","extension cord","plastic bin","marker","dusty lamp"],
+  "a drive-through":["speaker box","menu board","paper bag","drink tray","receipt","order number placard","headset","sauce packet","loyalty app","window squeegee"],
+  "a natural history museum":["fossil","exhibit placard","velvet rope","display case","audio guide","magnifying glass","replica skeleton","stone tablet","diorama","donation box"],
+  "a boxing gym":["speed bag","jump rope","hand wraps","mouthguard","corner stool","towel","stopwatch","heavy bag","training mitts","ring bell"],
+  "an Antarctic research station":["parka","snow goggles","radio transmitter","specimen jar","ice core","generator fuel","emergency flare","data log","satellite phone","canned food supply"],
+  "a fast food kitchen":["fry basket","order ticket","headset","grease trap","ketchup dispenser","tray","uniform","timer","ice scoop","cleaning rag"],
+  "an escape room":["padlock","cryptic clue","UV flashlight","combination dial","hidden compartment","timer display","red herring","key","logbook","walkie-talkie"],
+  "a jazz club":["trumpet","cocktail napkin","dim lamp","microphone","bar stool","set list","cover charge envelope","bourbon glass","tip jar","velvet curtain"],
+  "a retirement home":["medication cart","bingo card","activity schedule","rocking chair","TV remote","photo frame","puzzle box","walker","garden trowel","visitor log"],
+  "a comic book store":["issue in plastic sleeve","price sticker","long box","variant cover","loyalty punch card","reading table","rack spinner","action figure","poster tube","convention badge"],
+  "a dentist's office":["bib clip","suction tube","X-ray vest","paper cup","dental chart","disposable gloves","mouthwash","pick tool","appointment card","waiting room fish tank"],
+  "Times Square":["billboard","tourist map","hot dog cart","NYPD barrier","souvenir bag","TV camera","crosswalk signal","theater marquee","pretzel cart","flashing screen"],
+  "a construction site":["hard hat","blueprint roll","level","caution tape","sledgehammer","walkie-talkie","porta-potty","tool belt","scaffolding","safety vest"],
+  "a ghost town":["tumbleweeds","wanted poster","saloon door","rusted lock","broken window","old newspaper","oil lamp","hitching post","decayed sign","boot spur"],
+  "a vineyard":["wine glass","corkscrew","grape shears","fermentation barrel","label book","soil meter","tasting notes","wine thief","estate map","carafe"],
+  "a space station":["oxygen tank","tether line","mission patch","floating food packet","space suit glove","data tablet","porthole","EVA tool","dehydrated meal","altitude log"],
+  "a swamp":["canoe paddle","fishing net","lantern","mosquito coil","snake hook","gator tag","rubber boot","cattail","bait bucket","mud map"],
+  "a food truck":["chalkboard menu","order window","serving gloves","ticket stub","hot plate","condiment squeeze bottle","generator cord","napkin dispenser","cooler","tip jar"],
+  "a radio station":["microphone","on-air light","call log","playlist","mixing board","headphones","jingle reel","coffee mug","station ID card","cue card"],
+  "a courtroom":["gavel","evidence bag","transcript","oath Bible","judge's robe","jury notepad","exhibit placard","briefcase","water pitcher","bailiff badge"],
+  "a summer camp":["canteen","lanyard","color war bandana","bunk assignment list","flashlight","bug spray","friendship bracelet","camp map","canoe paddle","merit badge"],
+  "a theme park":["wristband","park map","fast pass","giant turkey leg","character photo","souvenir cup","ride photo","locker key","height stick","splash poncho"],
+  "a penthouse":["champagne flute","city view window","intercom","key card","modern art piece","decanter","remote control blinds","rooftop terrace access","valet ticket","guest registry"],
+  "a thrift store":["price tag gun","donation bin","wire hanger","vintage photo","sorting table","mystery box","rolling rack","old telephone","board game","price sticker"],
+  "a fire station":["turnout gear","fire pole","dispatch radio","hose nozzle","ladder","oxygen mask","meal schedule","incident log","safety poster","Dalmatian collar"],
+  "a sailboat":["compass","nautical chart","rope coil","life jacket","flare gun","anchor","sail tie","logbook","first-aid kit","binoculars"],
+  "a mountain summit":["summit register","hiking pole","carabiner","map","energy bar wrapper","altitude meter","wind gauge","flag","down jacket","emergency bivouac"],
+  // OBJECTS
+  "brick":["mortar trowel","scaffold","hard hat","level","chalk line","blueprint","safety goggles","work gloves","wheelbarrow","steel-toe boot"],
+  "pineapple":["machete","fruit bowl","serving platter","luau skewer","coconut","lei","cutting board","juice glass","can opener","tropical centerpiece"],
+  "baton":["relay track","starter pistol","whistle","lane marker","finish tape","sprint shoes","stopwatch","scoreboard","team jersey","warm-up towel"],
+  "backpack":["trail map","water bottle","compass","granola bar","first-aid kit","tent stake","headlamp","notebook","sleeping bag roll","bear spray"],
+  "compass":["topographic map","hiking pole","trail marker","pencil","navigation log","survival kit","waterproof case","altimeter","flashlight","emergency whistle"],
+  "accordion":["sheet music","music stand","bellows patch kit","gig bag","metronome","folk costume","tip hat","venue flyer","polka record","stage light"],
+  "crowbar":["work gloves","demolition helmet","nail bucket","pry board","safety goggles","flashlight","dumpster","tarp","bolt cutter","chalk mark"],
+  "magnifying glass":["evidence bag","tweezers","notepad","lab coat","specimen tray","ruler","UV light","microscope slide","index card","crime scene tape"],
+  "trophy":["engraving tool","velvet pedestal","award ribbon","podium","flashbulb camera","name plate","victory bouquet","score sheet","championship banner","press lanyard"],
+  "briefcase":["combination lock","legal pad","pen set","business card","contract","laptop","expense report","name tag","airline ticket","shredder"],
+  "candle":["matchbook","wax drip tray","candlestick holder","snuffer","incense","prayer book","birthday cake","séance cloth","romantic dinner setting","power outage kit"],
+  "typewriter":["ink ribbon","correction fluid","carbon paper","manuscript","editor's notes","ashtray","desk lamp","rejection letter","cigarette","whiskey glass"],
+  "umbrella":["rain gauge","trench coat","puddle","bus stop","newspaper","galoshes","forecast chart","broken spoke","dry-cleaning ticket","wind sock"],
+  "trampoline":["safety pad","ankle brace","spotter","chalk bag","gymnast leotard","foam pit","score panel","air pump","gym mat","physician's note"],
+  "staple gun":["drywall","blueprint","staple remover","tape measure","drop cloth","nail bucket","utility knife","pencil","chalk line","renovation invoice"],
+  "vinyl record":["turntable needle","record sleeve","cleaning brush","amp","speaker wire","album cover","cassette tape","DJ mixer","cardboard box","label sticker"],
+  "pocket watch":["watch chain","engraved case","magnifying loupe","watch repair kit","vest pocket","train schedule","inheritance letter","key","glass dome","leather pouch"],
+  "binoculars":["tripod","bird guide","notepad","field journal","camouflage vest","scope mount","lanyard","trail log","hat","case"],
+  "spatula":["griddle","mixing bowl","cutting board","kitchen timer","apron","recipe card","oil splatter","whisk","food thermometer","serving plate"],
+  "microscope":["slide","cover slip","staining solution","lab notebook","pipette","gloves","culture dish","centrifuge","specimen bottle","lab coat"],
+  "parachute":["harness","altimeter","jump manifest","helmet","goggles","deployment handle","landing zone map","logbook","wind sock","emergency cutaway"],
+  "treasure map":["compass","shovel","lantern","journal","X marker","sailing ship","cryptic riddle","rope","sand","old chest"],
+  "bowling ball":["rental shoe","finger guard","lane wax","score sheet","beer pitcher","wrist support","ball return","pin-setting machine","alley bumper","league shirt"],
+  "snow globe":["gift box","white tissue paper","music box key","figurine","water droplet","glitter","shelf display","price tag","auction card","childhood photo"],
+  "walkie-talkie":["channel chart","spare battery","antenna","holster","earpiece","ops manual","security badge","radio log","command post map","strap"],
+  "megaphone":["rally sign","clipboard","whistle","crowd barrier","safety vest","announcement script","feedback suppressor","lanyard","press badge","stage riser"],
+  "lantern":["fuel canister","match","glass chimney","wick trimmer","campsite map","night patrol log","oil rag","rope","darkness","shadow"],
+  "mirror":["comb","lipstick","vanity table","hairpin","frame","cleaning cloth","backstage light","self-portrait","costume rack","reflection"],
+  "slingshot":["pebble","tree branch","leather pouch","eye patch","target","apology note","broken window","hiding spot","wrist brace","scout badge"],
+  "duct tape":["flashlight","emergency kit","toolbox","torn strap","cracked pipe","binder clip","survival manual","makeshift repair","masking tape","work gloves"],
+  "cowbell":["drum kit","cowboy hat","livestock tag","concert wristband","stage monitor","joke prop","rally noise maker","livestock pen","fever prescription","band poster"],
+  "corkscrew":["wine bottle","wine glass","napkin","cellar key","tasting notes","decanter","bottle stopper","sommelier apron","wine menu","foil cutter"],
+  "metronome":["sheet music","piano bench","conductor's baton","practice log","tuning fork","music stand","recording equipment","composer's notebook","headphones","ticking clock"],
+  "handcuffs":["badge","police report","interrogation chair","Miranda card","evidence bag","key ring","booking sheet","patrol car","fingerprint kit","case file"],
+  "telescope":["star map","notebook","red flashlight","eyepiece","dew shield","star atlas","observation log","portable chair","thermos","dark sky permit"],
+  "lucky charm":["velvet pouch","four-leaf clover","rabbit's foot","horseshoe","wishbone","slot machine coin","betting slip","prayer card","amulet string","ritual candle"],
+  "cassette tape":["boombox","pencil for rewinding","mixtape label","tape deck","recording head cleaner","walkman","music journal","blank label","rewind button","high-bias tape"],
+  "expired coupon":["wallet","grocery list","shopping basket","receipt","price tag","customer service desk","refund form","loyalty card","complaint letter","expired ID"],
+  "rubber chicken":["comedy prop bag","squeaky toy","prank kit","stage dressing","auction bid card","puppet string","carnival game","old joke book","vaudeville playbill","tin cup"],
+  "first-aid kit":["bandage","antiseptic wipe","scissors","tweezers","emergency card","gloves","eye wash","tourniquet","cold pack","medical log"],
+  "golden key":["locked chest","velvet box","key ring","estate deed","treasure map","cipher","museum display","inheritance letter","safe dial","wax seal"],
+  "empty birdcage":["feather","perch","seed tray","cage door","bird journal","freedom note","pet store receipt","padlock","bird whistle","broken latch"],
+  "wedding ring":["ring box","vow booklet","altar cloth","engraving tool","divorce papers","pawn ticket","jewelry loupe","engagement photo","anniversary card","lost and found form"],
+  "signed photo":["frame","authentication certificate","auction paddle","Sharpie","fan letter","celebrity memoir","press badge","velvet rope","photo sleeve","autograph book"],
+  "broken clock":["battery","repair manual","clock hands","escapement spring","magnifying loupe","watchmaker's mat","dust cover","receipt","repair estimate","clock tower"],
+  "journal":["fountain pen","ink bottle","bookmark","lock and key","personal ad","wax seal","envelope","writing desk","draft letter","confession"],
+  "bottle of hot sauce":["menu","cloth napkin","cast-iron skillet","chef's apron","competition form","industrial freezer","hot pepper","dipping sauce cup","recipe card","judging scorecard"],
+  "old letter":["envelope","wax seal","ink stain","ribbon tie","reading glasses","desk lamp","translation book","reply draft","burned edge","family photo"],
+  // TIME PERIODS
+  "Medieval times":["chain mail","tapestry","chalice","quill","siege weapon","moat","scroll","torch","armor","dungeon key"],
+  "The 1920s":["flask","feather boa","gramophone","Model T","speakeasy token","cloche hat","cigarette holder","ticker tape","stock certificate","Charleston shoes"],
+  "The Wild West":["six-shooter","wanted poster","spittoon","saloon barstool","sheriff's star","horseshoe","lasso","saddlebag","telegraph machine","gold pan"],
+  "Ancient Rome":["toga","gladius","amphora","laurel wreath","wax tablet","gladiator helmet","mosaic tile","oil lamp","chariot wheel","Senate scroll"],
+  "The Grunge era":["flannel shirt","distortion pedal","concert ticket stub","Walkman","zine","thrift store tag","combat boots","band poster","cassette tape","broken string"],
+  "1960s Woodstock":["acoustic guitar","peace sign","tie-dye shirt","sleeping bag","protest sign","flower crown","PA speaker","mud-caked boot","commune flyer","hand-rolled cigarette"],
+  "The French Revolution":["guillotine","liberty cap","pamphlet","bread loaf","tricolor cockade","musket","arrest warrant","royal seal","peasant shawl","committee decree"],
+  "Victorian England":["top hat","corset","calling card","coal scuttle","pocket watch","quill","letter seal","medical lancet","parlor mirror","mourning brooch"],
+  "The Space Race":["flight suit","mission patch","slide rule","countdown clock","Tang canister","pressure gauge","telemetry printout","launch schedule","helmet visor","patriotic banner"],
+  "The Roaring Twenties":["bathtub gin","feather boa","jazz trumpet","ticker tape","speakeasy ledger","automobile crank","cloche hat","cigarette holder","stock ticker","electric marquee"],
+  "World War II":["dog tags","ration book","telegram","V-mail letter","gas mask","victory garden tool","war bond","propaganda poster","field radio","army canteen"],
+  "The Renaissance":["oil painting","anatomy sketch","printing press block","lute","fresco plaster","guild contract","celestial globe","sculptor's chisel","patronage letter","court costume"],
+  "Ancient Egypt":["papyrus scroll","canopic jar","khopesh","ankh","sarcophagus lid","reed pen","scarab amulet","linen wrap","cartouche","Nile mud brick"],
+  "The Cold War":["propaganda poster","shortwave radio","classified dossier","trench coat","Geiger counter","hotline telephone","nuclear fallout pamphlet","spy camera","iron curtain map","missile silo key"],
+  "1980s Wall Street":["Filofax","pager","brick cell phone","red suspenders","ticker tape","power tie","Rolodex","SEC report","leveraged buyout memo","shoulder-pad blazer"],
+  "The Great Depression":["bread line ticket","hobo bindle","soup kitchen ladle","dust mask","foreclosure notice","travel trunk","apple crate","WPA badge","radio receiver","patched coat"],
+  "Ancient Greece":["amphora","olive branch","chiton","laurel wreath","oracle scroll","marble column","theater mask","phalanx shield","symposium couch","agora coin"],
+  "Prohibition era":["flask","speakeasy token","bathtub","revolver","fedora","ledger book","police badge","bootleg bottle","Tommy gun","secret door"],
+  "The Disco era":["mirror ball","platform shoe","bell-bottom","velvet rope","DJ crate","strobe light","Studio 54 invite","gold chain","leisure suit","cocaine vial"],
+  "The Bronze Age":["bronze axe","clay tablet","kiln brick","trade bead","goatskin water bag","animal-hide shield","crude forge","grain storage jar","sun calendar stone","primitive loom"],
+  "The Information Age":["floppy disk","Y2K pamphlet","AOL disc","dot-com prospectus","beeper","CRT monitor","ethernet cable","Palm Pilot","startup pitch deck","modem"],
+  "The Jurassic period":["fossil","amber","fern frond","bone fragment","volcanic rock","primordial mud","scale impression","claw mark","egg fragment","giant footprint"],
+  "1990s dot-com boom":["IPO prospectus","beeper","dial-up modem","business plan napkin","stock option certificate","bagel","khaki pants","pool table","startup t-shirt","foosball table"],
+  "Post-apocalypse":["scavenged can","gas mask","makeshift weapon","water purification tablet","ration pack","radiation badge","survival map","tribal marking","broken radio","barbed wire"],
+  "The distant future":["neural port","hologram projector","memory chip","oxygen recycler","bio-ration","jetpack harness","identity implant","quantum lock","sky-rail pass","AI companion badge"],
+  "The Salem Witch Trials":["dunking stool","accusation scroll","Bible","corn doll","gallows rope","confession ledger","Salem map","prayer shawl","witch's mark sketch","town crier bell"],
+  "The Gold Rush":["pickaxe","sluice pan","assay certificate","claim stake","mule harness","canteen","camp lantern","gold nugget","tent spike","postal receipt"],
+  "Ancient China":["silk roll","bronze coin","ink stone","rice bowl","tea ceremony set","jade piece","compass","gunpowder pouch","dragon seal","paper lantern"],
+  "The Viking Age":["longboat oar","rune stone","mead horn","battle axe","fur cloak","bone comb","Mjolnir pendant","shield boss","trading scale","saga scroll"],
+  "The British Invasion":["electric guitar","Carnaby Street tag","tour bus schedule","scream note","mop-top wig","psychedelic poster","concert wristband","news headline","autograph book","tea cup"],
+  "1970s New York":["subway token","graffiti can","disco flyer","rotary phone","mugger's wanted poster","power outage candle","punk zine","fire hydrant wrench","borough map","fire escape"],
+  "The Gilded Age":["opera program","top hat","Tiffany lamp","stock certificate","union leaflet","butler's tray","railway bond","embossed calling card","steel girder","robber baron ledger"],
+  "Pre-internet 1994":["Blockbuster card","pager","VHS tape","physical phone book","printout map","cassette mixtape","fax machine","TV Guide","rotary phone","paper ticket"],
+  "The Black Plague":["doctor's beak mask","quarantine sign","death cart","flea-ridden cloth","tallow candle","last rites oil","herb sachet","plague bell","sealed gate","prayer beads"],
+  "The Moon Landing era":["mission patch","slide rule","Tang packet","telemetry printout","white jumpsuit","countdown clock","vinyl record","lunar soil bag","flag planting kit","TV broadcast monitor"],
+  "Ancient Mesopotamia":["cuneiform tablet","ziggurat brick","reed stylus","trade seal","irrigation tool","grain measure","temple offering","clay cylinder","goat-skin parchment","lapis lazuli bead"],
+  "The Manhattan Project":["classified envelope","Geiger counter","lead apron","code name badge","detonation schematic","film badge dosimeter","military orders","desert map","scientific notebook","uranium flask"],
+  "The Hippie era":["peace sign pendant","incense holder","protest banner","VW bus key","commune deed","acoustic guitar","earth shoes","love letter","flower crown","hand-rolled cigarette"],
+  "Early Hollywood":["film reel","clapperboard","arc light","grease paint","director's chair","script","feather fan","telegenic headshot","casting couch","studio gate pass"],
+  "The Ice Age":["bone tool","cave painting pigment","mammoth fur","stone hand axe","fire spark rock","carved tusk","animal tendon cord","berry pouch","mud print","ice shard"],
+  // RELATIONSHIPS
+  "Mother & Daughter":["family photo","handwritten recipe","old diary","birthday card","shared necklace","college brochure","bedtime book","childhood drawing","heirloom ring","argument note"],
+  "Father & Son":["tool belt","baseball glove","car manual","report card","fishing rod","old trophy","car key","letter of recommendation","tie","handshake"],
+  "Teacher & Student":["report card","textbook","red pen","assignment","detention slip","apple","gradebook","test paper","pencil","diploma"],
+  "Priest & Parishioner":["Bible","confession screen","candle","rosary","alms basket","baptism certificate","prayer book","incense","kneeler","holy water"],
+  "Boss & Employee":["performance review","business card","org chart","briefcase","email printout","clock","parking badge","coffee mug","expense report","HR form"],
+  "Doctor & Patient":["stethoscope","prescription pad","medical chart","tongue depressor","blood pressure cuff","gown","exam table","pill bottle","referral form","medical history"],
+  "Lawyer & Client":["case file","contract","legal pad","court summons","exhibit","briefcase","retainer agreement","evidence bag","pen","business card"],
+  "Coach & Athlete":["whistle","playbook","stopwatch","scoreboard","training cone","clipboard","water bottle","jersey","injury report","trophy"],
+  "Chef & Food critic":["menu","tasting plate","notebook","pen","wine glass","fork","chef's card","reservation","rating pad","napkin"],
+  "Detective & Suspect":["case file","fingerprint kit","evidence bag","crime scene photo","Miranda card","interrogation chair","handcuffs","badge","notepad","surveillance photo"],
+  "Therapist & Client":["tissue box","couch","notepad","pen","clock","appointment card","bill","water glass","bookshelf","diploma"],
+  "Superhero & Villain":["cape","mask","utility belt","doomsday device","city map","ransom note","handcuffs","headline newspaper","calling card","escape hatch"],
+  "Astronaut & Mission control":["space suit","mission patch","headset","flight log","countdown clock","telemetry data","oxygen gauge","ration pack","manual override","EVA tether"],
+  "King & Court jester":["crown","scepter","court scroll","jester hat","bells","throne","banquet plate","royal seal","performance stage","court announcement"],
+  "Rival chefs":["knife roll","tasting spoon","competition form","judge's scorecard","ingredient list","apron","timer","mise en place","plating tweezers","trophy"],
+  // GENRES
+  "Film Noir":["fedora","cigarette","desk lamp","trench coat","crime scene photo","whiskey glass","venetian blinds shadow","revolver","filing cabinet","matchbook"],
+  "Horror":["flashlight","bloody knife","stuck door","cellar key","mysterious letter","power outage candle","monster trap","diary","outdated map","broken phone"],
+  "Romantic Comedy":["coffee cup","misdelivered package","rain coat","wedding invitation","airport gate","rival's business card","shared umbrella","bouquet","airport PA","meet-cute prop"],
+  "Thriller":["classified dossier","burner phone","passport","hidden camera","blackmail note","security badge","CCTV monitor","escape route map","ear piece","wrist restraint"],
+  "Murder Mystery":["magnifying glass","chalk outline","suspect card","poison bottle","anonymous note","candlestick","library key","will","appointment book","incriminating photo"],
+  "Action":["earpiece","gear kit","tactical vest","grappling hook","encrypted drive","countdown timer","detonator","getaway vehicle key","classified intel","rappelling rope"],
+  "Science Fiction":["neural port","oxygen recycler","hologram device","alien artifact","mission log","force field emitter","quantum key","cryopod","translator chip","anti-gravity boots"],
+  "Western":["revolver","wanted poster","spittoon","saddle bag","sheriff star","lasso","gold coin","saloon glass","horse brush","Colt rifle"],
+  "Heist film":["blueprint roll","earpiece","laser grid map","safe dial","disguise kit","decoy bag","timing device","getaway car key","fence contact card","contingency plan"],
+  "Coming-of-age":["yearbook","first driver's license","summer job uniform","love letter","college letter","friendship bracelet","bicycle","prom ticket","diary","mixtape"],
+  "Mockumentary":["talking head chair","crew credential","boom mic","release form","b-roll footage","prop memo","confession cam","call sheet","unseen footage tape","cast badge"],
+  "Spy thriller":["silenced pistol","disguise kit","encrypted briefcase","dead drop note","tuxedo","lipstick camera","fake passport","escape route","cyanide capsule","gadget watch"],
+  "Courtroom drama":["gavel","evidence bag","transcript","oath Bible","judge's robe","jury notepad","exhibit placard","briefcase","water pitcher","bailiff badge"],
+  "Dark comedy":["accident report","flowers","apology card","plastic bag","price tag","birthday cake","awkward gift","newspaper headline","insurance form","spare key"],
+  // OCCUPATIONS
+  "Taxidermist":["mount form","preservation chemical","glass eye","scalpel","wire frame","fur pelt","specimen log","apron","display stand","reference photo"],
+  "Bomb disposal expert":["blast suit","wire cutters","mirror probe","detonator","EOD robot remote","blast radius map","incident log","communications headset","timer","sand bag"],
+  "Competitive eater":["bib","water cup","plate","napkin roll","timer","score tally","antacid","hot sauce","weigh-in form","winner's belt"],
+  "Food critic":["notebook","pen","tasting menu","wine glass","press credential","fork","chef's card","reservation","rating stars pad","napkin"],
+  "Bounty hunter":["warrant","zip ties","tracking device","fingerprint kit","photo file","non-lethal weapon","rental car key","burner phone","fee contract","transport cage"],
+  "Hypnotist":["pocket watch","stage spotlight","suggestion script","consent form","trance induction card","eye fixation point","stage prop","wristband","revival smelling salts","gig poster"],
+  "Sommelier":["wine bottle","corkscrew","tastevin","tasting glass","cellar log","decanter","foil cutter","wine list","barrel sample","vintage chart"],
+  "Pyrotechnician":["fuse","powder charge","timing board","blast shield","fire extinguisher","detonator wire","protective gear","boundary tape","incident report","light meter"],
+  "Vatican archivist":["white gloves","papal scroll","wax seal","illuminated manuscript","access keycard","reading lamp","translation dictionary","cataloging form","archival box","ancient map"],
+  "Plague doctor":["beak mask","black robe","walking cane","herbal pouch","bloodletting tool","quarantine notice","death ledger","lantern","wax tablet","patient roster"],
+  "Rodeo clown":["barrel","face paint","floppy hat","oversized boots","squeaky horn","safety rope","score board","arena gate","bull rope","sponsor banner"],
+  "Treasure hunter":["pickaxe","treasure map","compass","journal","headlamp","rope ladder","artifact brush","specimen bag","sat phone","camp lantern"],
+  // EMOTIONS
+  "Grief":["tissue box","black clothing","sympathy card","empty chair","photo frame","funeral program","eulogy draft","untouched plate","voicemail","belongings box"],
+  "Euphoria":["confetti","champagne bottle","prize ribbon","acceptance letter","phone (calling someone)","open window","running shoes","journal entry","raised arms","flight ticket"],
+  "Jealousy":["rival's trophy","social media phone","overheard note","comparison chart","binoculars","gift receipt","party invitation","achievement plaque","mirror","clenched fists"],
+  "Nostalgia":["old photo album","yearbook","cassette tape","childhood toy","handwritten letter","retro TV","recipe card","worn map","school report card","dried flower"],
+  "Guilt":["unsigned confession","untouched gift","unanswered phone","apology draft","broken object","missing money","locked drawer","burned letter","court summons","sleeping pill"],
+  "Paranoia":["binoculars","surveillance note","disguise kit","locked door","bug detector","burner phone","coded message","drawn curtains","escape route map","evidence wall"],
+  "Longing":["unanswered letter","train ticket","old photo","voicemail","packed bag","plane window","empty cup","journal","keepsake locket","map with marked destination"],
+  "Rage":["clenched fist","broken glass","torn letter","overturned chair","smashed phone","red marker","legal notice","fist hole in wall","boxing glove","slammed door"],
+  "Anxiety":["pacing trail","pill bottle","to-do list","emergency kit","drumming fingers","breathing paper bag","calendar with deadlines","tapping pen","untouched food","exit sign"],
+  "Hope":["plant sprout","letter in progress","open window","savings jar","job application","doctor's report","boarding pass","calendar with marked date","lucky charm","sunrise view"],
+};
+
+const fallbackObjs = {
+  "📍 Places":["table","chair","door","window","light switch","phone","clock","bag","cup","key"],
+  "👥 Relationships":["letter","photo","chair","table","gift","ring","contract","phone","door","key"],
+  "⏳ Time Periods":["weapon","garment","document","tool","food vessel","currency","shelter material","transport","written record","communication device"],
+  "🧳 Objects":["shelf","table","carrying case","label","receipt","box","string","hook","stand","cover"],
+  "🎬 Film Genres":["camera","lighting rig","screenplay","costume","prop","soundtrack score","director's note","storyboard","set piece","film reel"],
+  "💬 Words":["notepad","pen","chair","window","cup","phone","book","door","mirror","clock"],
+  "💬 Dialogue":["phone","letter","table","chair","door","cup","clock","notepad","pen","window"],
+  "😤 Emotions":["tissue","phone","letter","chair","cup","window","journal","photo","mirror","door"],
+  "💼 Occupations":["uniform","tool","badge","equipment case","form","desk","phone","briefcase","schedule","reference manual"],
+  "🌀 Scenarios":["envelope","key","phone","clock","chair","door","glass","bag","note","photo"]
+};
+
+function getObjects(suggestion, cat) {
+  if (objMap[suggestion]) return objMap[suggestion];
+  for (const k of Object.keys(objMap)) {
+    if (suggestion.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(suggestion.toLowerCase())) {
+      if (objMap[k]) return objMap[k];
+    }
+  }
+  return fallbackObjs[cat] || fallbackObjs["🌀 Scenarios"];
+}
+
+// ── DEFINITION / WIKI ────────────────────────────────────────────────────────
+function getRefType(suggestion, cat) {
+  const isSingle = !suggestion.includes(' ') && !suggestion.includes('&');
+  if (cat === "💬 Words" && isSingle) return "dictionary";
+  if (["📍 Places","⏳ Time Periods","🎬 Film Genres","💼 Occupations","😤 Emotions"].includes(cat)) return "wikipedia";
+  if (isSingle && cat !== "💬 Dialogue") return "wikipedia";
+  return "none";
+}
+
+async function fetchDef(word) {
+  try {
+    const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const m = d[0]?.meanings?.[0];
+    if (!m) return null;
+    return { pos: m.partOfSpeech, def: m.definitions?.[0]?.definition, phonetic: d[0]?.phonetic || d[0]?.phonetics?.[0]?.text };
+  } catch { return null; }
+}
+
+function wikiSlug(s) { return s.replace(/^(a |an |the )/i,'').trim().replace(/\s+/g,'_'); }
+
+// ── SCENE TEMPLATES ──────────────────────────────────────────────────────────
+const tpls = {
+  "💬 Words": w => [
+    {scene:`One character is completely obsessed with "${w}" and can't stop bringing it up. The other has urgent, unrelated news to share.`, line:`I can't stop thinking about ${w} — and I know this is bad timing, but...`},
+    {scene:`Two characters are arguing, and "${w}" is the unexpected thing that settles it — or makes it worse.`, line:`You want to know the real problem? ${w}. That's the problem.`},
+    {scene:`One character is trying to explain "${w}" to another who absolutely refuses to understand it.`, line:`Okay, when I say "${w}" I need you to really listen this time.`},
+    {scene:`"${w}" is something one character has never experienced, and the other acts like it's obvious.`, line:`Wait — you've seriously never encountered ${w}? Not even once?`},
+    {scene:`"${w}" shows up at a very inconvenient moment and derails an otherwise ordinary interaction.`, line:`I was going to say something completely different, but then — ${w}.`},
+  ],
+  "📍 Places": w => [
+    {scene:`Two characters meet at ${w} for reasons that have nothing to do with why people normally go there.`, line:`I wouldn't normally come to ${w}, but here I am.`},
+    {scene:`Something terrible — or wonderful — happened at ${w} years ago, and one character is just now returning.`, line:`Last time I was at ${w}, everything changed.`},
+    {scene:`One character works at ${w} and is completely burnt out. A customer arrives who needs something unusual.`, line:`Welcome to ${w}. Please don't ask me anything complicated today.`},
+    {scene:`Two people are both hiding out at ${w} for completely different reasons and discover each other.`, line:`You're not supposed to be here either, are you.`},
+    {scene:`Something has gone wrong at ${w} and two people must fix it before anyone notices.`, line:`Whatever you do, act normal. We're still at ${w}, everything is fine.`},
+  ],
+  "👥 Relationships": w => {
+    const [a,b] = w.includes('&') ? w.split('&').map(s=>s.trim()) : [w,'the other person'];
+    return [
+      {scene:`The ${a} and ${b} are in the middle of an ordinary routine when one of them cracks everything open.`, line:`Can I say something I've never said out loud before?`},
+      {scene:`The power dynamic between ${a} and ${b} has quietly shifted — and one of them hasn't realized it yet.`, line:`I used to wait for you to tell me what to do. I don't think I'll do that anymore.`},
+      {scene:`The ${a} and ${b} are pretending a recent conflict didn't happen while doing something completely normal.`, line:`So. How are you. Don't say fine.`},
+      {scene:`The ${a} wants something from the ${b} that they're too proud or afraid to ask for directly.`, line:`I'm not here for any particular reason. I just — happened to be nearby.`},
+      {scene:`Whatever the ${a} and ${b} say next will define their relationship going forward.`, line:`Before you say anything — just let me say this.`},
+    ];
+  },
+  "⏳ Time Periods": w => [
+    {scene:`Two ordinary people in ${w} completely disagree about how serious things are.`, line:`People keep saying everything is about to change. I think they're being dramatic.`},
+    {scene:`A new arrival to ${w} is trying to understand rules everyone else takes for granted.`, line:`Just tell me what I'm not supposed to say out loud.`},
+    {scene:`Two characters in ${w} are secretly planning something radical or dangerous for their time.`, line:`We can't talk about this here. Not during ${w}.`},
+    {scene:`One character is thriving in ${w}. The other is struggling — and jealous.`, line:`You were born for this era, weren't you. Must be nice.`},
+    {scene:`A small personal moment plays out during ${w}. The characters barely notice the history.`, line:`I know what's happening out there. But right now, I just need to talk to you.`},
+  ],
+  "🧳 Objects": w => [
+    {scene:`The ${w} belongs to someone who isn't present. Two characters argue about what to do with it.`, line:`Don't touch the ${w}. We don't know whose it is.`},
+    {scene:`One character is desperately trying to explain why they have a ${w} in a situation where it makes no sense.`, line:`I can explain the ${w}. I promise this looks way worse than it is.`},
+    {scene:`The ${w} has emotional significance to one character that the other finds ridiculous.`, line:`I know it's just a ${w} to you. It's not just a ${w} to me.`},
+    {scene:`A ${w} has gone missing and the search for it reveals something about both characters.`, line:`The ${w} was right here. I'm not losing my mind.`},
+    {scene:`One character gifts the ${w} to another at exactly the wrong — or right — moment.`, line:`I know this is weird, but — take the ${w}. Please.`},
+  ],
+  "🎬 Film Genres": w => [
+    {scene:`Two characters are living inside a ${w} but one of them doesn't realize it yet.`, line:`Have you noticed how every conversation we have lately feels like it's building toward something?`},
+    {scene:`A scene plays out that feels completely out of place for a ${w} — and both characters are aware.`, line:`This is not how any of this is supposed to go.`},
+    {scene:`One character is performing the expected conventions of ${w}. The other keeps breaking them.`, line:`In a ${w}, I'd be the one with all the answers. But I actually don't know.`},
+    {scene:`The characters are producing or watching a ${w} and disagree violently about what makes it good.`, line:`You don't understand what ${w} is really supposed to do to an audience.`},
+    {scene:`Life suddenly starts following the rules of ${w} and both characters must adapt in real time.`, line:`Okay. Okay. If this is a ${w}, what do we do next?`},
+  ],
+  "💬 Dialogue": w => [
+    {scene:`The line "${w}" is said completely out of context — and the other character has to respond as if it makes perfect sense.`, line:`${w}`},
+    {scene:`The line "${w}" ends a long silence. Everything before and after it is unspoken.`, line:`${w}`},
+    {scene:`"${w}" is said as a kind of code. The other character knows exactly what it really means.`, line:`${w}. You know what I mean.`},
+    {scene:`"${w}" is the most honest thing one character has said all day — and it comes out of nowhere.`, line:`I don't know why I said this, but — ${w}.`},
+    {scene:`One character has been practicing saying "${w}" for a while. This is the first time they've said it out loud.`, line:`Okay. Here goes. ${w}.`},
+  ],
+  "😤 Emotions": w => [
+    {scene:`Both characters are feeling ${w} but expressing it in completely opposite ways — one loud, one silent.`, line:`I don't want to talk about it. I'm fine. (beat) I'm not fine.`},
+    {scene:`One character has been suppressing ${w} for a long time. Today is the day it finally comes out.`, line:`I need you to know that I've been feeling this for a while.`},
+    {scene:`The ${w} belongs to one character, but the other one catches it and doesn't know what to do with it.`, line:`You don't have to explain. I can see it.`},
+    {scene:`${w} is mistaken for something else entirely, causing confusion.`, line:`Why are you looking at me like that? I'm not — it's not what you think it is.`},
+    {scene:`Two characters bond over sharing the same experience of ${w} for the first time.`, line:`Have you ever felt — actually, maybe this is weird to ask.`},
+  ],
+  "💼 Occupations": w => [
+    {scene:`A ${w} is caught doing something completely unrelated to their job and has to explain themselves.`, line:`Look, I know what it looks like. But there's a very good reason a ${w} would be here.`},
+    {scene:`Someone is training to become a ${w} and discovering it's nothing like what they imagined.`, line:`Nobody told me this part of the job. Nobody.`},
+    {scene:`A ${w} is meeting a client whose request pushes the absolute limits of the profession.`, line:`In twenty years as a ${w}, I have never had a request like this.`},
+    {scene:`Two people meet, and one is a ${w} — the other has been looking for exactly that.`, line:`I can't believe I'm meeting a ${w} right now. I've needed one of you for months.`},
+    {scene:`A ${w} is trying to keep their profession secret in a social situation where it just keeps coming up.`, line:`I'm between careers right now. (pause) I'm a ${w}. I don't want to talk about it.`},
+  ],
+  "🌀 Scenarios": w => [
+    {scene:`${w} — and neither character says so directly. Everything is subtext.`, line:`How long have you been here?`},
+    {scene:`${w} — and one character is trying to stay calm while the other is falling apart.`, line:`Breathe. Just — breathe. We can handle this.`},
+    {scene:`${w} — but the characters are still performing normalcy for the sake of everyone watching.`, line:`Everything's fine. Great, actually. Couldn't be better.`},
+    {scene:`${w} — and one character keeps almost saying it before pulling back. Until they don't.`, line:`I've been meaning to — no. Never mind. Actually — no. Okay. Here it is.`},
+    {scene:`${w} — and the characters disagree about what the right response is.`, line:`You're handling this very differently than I would.`},
+  ],
+};
+
+// ── STATE & DOM ───────────────────────────────────────────────────────────────
+let currentCat = "🎲 All Random";
+let currentSugg = null;
+
+const catContainer = document.getElementById('categories');
+const catLabel = document.getElementById('catLabel');
+const suggText = document.getElementById('suggestionText');
+const genBtn = document.getElementById('generateBtn');
+const exBtn = document.getElementById('examplesBtn');
+const exPanel = document.getElementById('examplesPanel');
+const exList = document.getElementById('examplesList');
+const exClose = document.getElementById('examplesClose');
+const themeBtn = document.getElementById('themeBtn');
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+let isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  themeBtn.textContent = isDark ? '☀️' : '🌙';
+}
+themeBtn.addEventListener('click', () => { isDark = !isDark; applyTheme(); localStorage.setItem('theme', isDark ? 'dark' : 'light'); });
+const saved = localStorage.getItem('theme');
+if (saved) isDark = saved === 'dark';
+applyTheme();
+
+// ── BUILD CATS ────────────────────────────────────────────────────────────────
+Object.keys(categories).forEach(key => {
+  const btn = document.createElement('button');
+  btn.className = 'cat-btn' + (key === currentCat ? ' active' : '');
+  btn.textContent = key;
+  btn.addEventListener('click', () => {
+    currentCat = key;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    hideEx();
+  });
+  catContainer.appendChild(btn);
+});
+
+// ── GENERATE ──────────────────────────────────────────────────────────────────
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function generate() {
+  hideEx();
+  let cat = currentCat, pool;
+  if (cat === "🎲 All Random") {
+    const real = Object.keys(categories).filter(k => k !== "🎲 All Random");
+    cat = rand(real);
+    pool = categories[cat];
+  } else {
+    pool = categories[cat];
+  }
+  const s = rand(pool);
+  currentSugg = { s, cat };
+  catLabel.textContent = cat.replace(/[^\w\s&]/gu, '').trim() || cat;
+  const isDialogue = cat === "💬 Dialogue";
+  suggText.className = 'suggestion-text' + (isDialogue ? ' dialogue' : '') + ' animate';
+  suggText.textContent = s;
+  void suggText.offsetWidth;
+  exBtn.disabled = false;
+}
+genBtn.addEventListener('click', generate);
+
+// ── EXAMPLES ──────────────────────────────────────────────────────────────────
+exBtn.addEventListener('click', () => { exPanel.classList.contains('visible') ? hideEx() : showEx(); });
+exClose.addEventListener('click', hideEx);
+
+async function showEx() {
+  if (!currentSugg) return;
+  const { s, cat } = currentSugg;
+  exList.innerHTML = '';
+
+  // — DEFINITION / WIKI —
+  const refType = getRefType(s, cat);
+  if (refType !== "none") {
+    const defDiv = document.createElement('div');
+    defDiv.className = 'def-block';
+
+    if (refType === "dictionary") {
+      defDiv.innerHTML = `<div class="def-label">📖 Definition</div><div class="def-text" style="color:var(--text2);font-style:italic">Looking up "${s}"…</div>`;
+      exList.appendChild(defDiv);
+      const def = await fetchDef(s);
+      if (def && def.def) {
+        defDiv.innerHTML = `
+          <div class="def-label">📖 Definition</div>
+          ${def.phonetic||def.pos ? `<div class="def-pos">${[def.phonetic, def.pos].filter(Boolean).join(' · ')}</div>` : ''}
+          <div class="def-text">${def.def}</div>`;
+      } else {
+        defDiv.innerHTML = `<div class="def-label">📖 Definition</div>
+          <div class="def-text"><a class="wiki-link" href="https://en.m.wikipedia.org/wiki/${encodeURIComponent(s)}" target="_blank" rel="noopener">Search Wikipedia ↗</a></div>`;
+      }
+    } else {
+      const slug = wikiSlug(s);
+      defDiv.innerHTML = `
+        <div class="def-label">📚 Reference</div>
+        <div class="def-text"><a class="wiki-link" href="https://en.m.wikipedia.org/wiki/${encodeURIComponent(slug)}" target="_blank" rel="noopener">Wikipedia: ${s} ↗</a></div>`;
+      exList.appendChild(defDiv);
+    }
+  }
+
+  // — OBJECT WORK —
+  const objs = getObjects(s, cat);
+  const objDiv = document.createElement('div');
+  objDiv.className = 'objects-block';
+  objDiv.innerHTML = `
+    <div class="objects-label">🎭 Object Work — 10 Associated Items</div>
+    <div class="objects-chips">${objs.map(o => `<span class="obj-chip">${o}</span>`).join('')}</div>`;
+  exList.appendChild(objDiv);
+
+  // — SCENES —
+  const fn = tpls[cat] || tpls["🌀 Scenarios"];
+  fn(s).forEach((h, i) => {
+    const div = document.createElement('div');
+    div.className = 'hint-item';
+    div.style.animationDelay = `${(i + 2) * 60}ms`;
+    div.innerHTML = `
+      <div class="hint-num">Scene ${i + 1}</div>
+      <div class="hint-scene">${h.scene}</div>
+      <div class="hint-line">${h.line}</div>`;
+    exList.appendChild(div);
+  });
+
+  exPanel.classList.add('visible');
+  exBtn.innerHTML = '✕ Hide';
+}
+
+function hideEx() {
+  exPanel.classList.remove('visible');
+  if (!exBtn.disabled) exBtn.innerHTML = '💡 Examples';
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  const sw = `const C='improv-v2';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll([self.registration.scope])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res;}).catch(()=>caches.match(e.request))));});`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+}
+</script>
+<script>
+  const m={name:"Yes & — Improv Prompter",short_name:"Improv",description:"Random suggestions for improv scene practice",start_url:".",display:"standalone",background_color:"#0f0e0c",theme_color:"#0f0e0c",orientation:"portrait",icons:[{src:"data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#c4502a"/><text x="96" y="120" font-size="80" text-anchor="middle" font-family="Georgia,serif" fill="white">&</text></svg>'),sizes:"192x192",type:"image/svg+xml"}]};
+  const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/json'}));document.head.appendChild(ml);
+</script>
+</body>
+</html>
